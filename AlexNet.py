@@ -1,64 +1,53 @@
-# test for os.walk()
-#
-# import os
-#
-# data_dir = 'D:/DataBase/caltech-101'
-# i = 0
-#
-# for root, dirs, _ in os.walk(data_dir):
-#     print(root)
-#     print(dirs)
-#     print(_)
-#     if i > 2:
-#         break
-#     i += 1
-
-#
-# read for .mat
-#
-# from scipy.io import loadmat
-# dataMat=loadmat('D:/DataBase/caltech-101/Annotations/Airplanes_Side_2/annotation_0001.mat')
-# # mat文件有很多不相关的keys，要找到目标的keys
-# # print(dataMat.keys()) # 输出为dict_keys(['__header__', '__version__', '__globals__', 'data', 'label'])
-# temp1 = dataMat['__header__']
-# temp2 = dataMat['__version__']
-# temp3 = dataMat['__globals__']
-# temp4 = dataMat['box_coord']
-# temp5 = dataMat['obj_contour']
-# print(temp1)
-# print(temp2)
-# print(temp3)
-# print(temp4)
-# print(temp5)
-# print(temp5.shape)
-
-#
-# test for dataloader
-#
-# from Caltech101_Dataset import Caltech101Dataset
-# from torch.utils.data import DataLoader
-# from torchvision.transforms import transforms
-#
-# train_csv_dir = 'D:/DataBase/Calteck101/train.csv'
-# valid_csv_dir = 'D:/DataBase/Calteck101/valid.csv'
-# test_csv_dir = 'D:/DataBase/Calteck101/test.csv'
-#
-# transform = transforms.Compose([
-#     transforms.Resize([224, 224]),
-#     transforms.ToTensor()
-# ])
-#
-# train_dataset = Caltech101Dataset(train_csv_dir, transform)
-#
-# train_loader = DataLoader(dataset=train_dataset, batch_size=32)
-#
-# rest of the images in the last step is abandoned!!! adjust the parameters!!!
-# for epoch in range(10):
-#     for step, data in enumerate(train_loader):
-#         inputs, labels = data
-#         print("epoch:", epoch, "step:", step)
-#         print("data shape:", inputs.shape, labels.shape)
+import torch
 
 
 
+class AlexNet(torch.nn.Module):
+    def __init__(self, num_class=100, init_weight=False):
+        super(AlexNet, self).__init__()
+        self.features = torch.nn.Sequential(
+            # conv1 input:3*227*227  output:96*55*55 afterPooling:96*27*27
+            torch.nn.Conv2d(3, 64, kernel_size=11, stride=4, padding=2),
+            torch.nn.ReLU(inplace=True),
+            torch.nn.MaxPool2d(kernel_size=3, stride=2),
+            # conv2 input:96*27*27  output:256*27*27 afterPooling:256*13*13
+            torch.nn.Conv2d(64, 192, kernel_size=5, stride=1, padding=2),
+            torch.nn.ReLU(inplace=True),
+            torch.nn.MaxPool2d(kernel_size=3, stride=2),
+            # conv3 input:256*13*13  output:384*13*13
+            torch.nn.Conv2d(192, 384, kernel_size=3, stride=1, padding=1),
+            # conv4 input:384*13*13  output:384*13*13
+            torch.nn.Conv2d(384, 256, kernel_size=3, stride=1, padding=1),
+            # conv5 input:384*13*13  output:256*13*13 afterPooling:256*6*6
+            torch.nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1),
+            torch.nn.ReLU(inplace=True),
+            torch.nn.MaxPool2d(kernel_size=3, stride=2)
+        )
+        self.classify = torch.nn.Sequential(
+            torch.nn.Linear(256*6*6, 4096),
+            torch.nn.ReLU(inplace=True),
+            torch.nn.Dropout(0.5),
+            torch.nn.Linear(4096, 4096),
+            torch.nn.ReLU(inplace=True),
+            torch.nn.Dropout(0.5),
+            torch.nn.Linear(4096, num_class),
+        )
+        if init_weight:
+            pass
+
+    def forward(self, x):
+        x = self.features(x)
+        x = torch.flatten(x, start_dim=1)
+        x = self.classify(x)
+        return x
+
+    def _initialize_weights(self):
+        for m in self.modules():
+            if isinstance(m, torch.nn.Conv2d):
+                torch.nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')  # 何教授方法
+                if m.bias is not None:
+                    torch.nn.init.constant_(m.bias, 0)
+            elif isinstance(m, torch.nn.Linear):
+                torch.nn.init.normal_(m.weight, 0, 0.01)  # 正态分布赋值
+                torch.nn.init.constant_(m.bias, 0)
 

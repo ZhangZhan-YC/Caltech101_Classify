@@ -4,6 +4,23 @@ import shutil
 import random
 import tqdm
 
+# directory tree:
+# D:/Database
+#       /caltech-101
+#               /101_ObjectCategories
+#                       /accordion
+#                       ...other ordinary data
+#       /Calteck101
+#               /train
+#                       /0
+#                       ...other train data after splitting
+#               /valid
+#                       /0
+#                       ...other valid data after splitting
+#               /test
+#                       /0
+#                       ...other test data after splitting
+
 data_dir = 'D:/DataBase/Calteck101/'
 train_dir = 'D:/DataBase/Calteck101/train'
 valid_dir = 'D:/DataBase/Calteck101/valid'
